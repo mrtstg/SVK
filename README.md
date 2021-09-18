@@ -58,6 +58,16 @@ callback_server = callback_app.get_sever()
 |------:|:-----|
 |secret| Секретный ключ вашего сервера, если его нет, то не трогайте параметр |
 |confirmation| Ключ подтверждения, если хотите получить его через API, оставьте пустым |
+# Как делать запросы к API?
+- Получить объект API-клиента при помощи метода get_api()
+```python
+api = app.get_api()
+print(api.groups.getById(group_id=1))
+```
+- Обращаться к переменной клиента api
+```python
+print(app.api.users.get(vk_ids=[1])[0])
+```
 # Как обработать соообщение?
 > Обработка сообщения по регулярному выражению/командам
 Для обработки определнных шаблонов сообщения используются обратчики функций, объявляемые через декоратор
@@ -110,3 +120,67 @@ def print_liker_id(event):
   print(event.liker_id)
 ```
 ## Общие параметры объекта события
+|Параметр| Описание|
+|------:|:-----|
+|event| Информация о событии (включая тип и айди группы) |
+|type| Тип события |
+|object| Объект события (https://vk.com/dev/groups_events)|
+|Ситуативные параметры| Например, можно обращаться к полям в object'е события |
+## Общие параметры сообщения
+|Параметр|Описание|
+|-----:|:------|
+|Все параметры из объекта события||
+|from_payload| Поймана ли полезная нагрузка. Основной шаблон - {'command': 'YOUR_TEXT'}|
+|callback| Получено ли это сообщение по callback-ивенту|
+|chat_id| Рассчитанный айди чата. Если сообщение из личных сообщений, то равен нулю |
+|from_chat| Boolean-переменная, показывает из беседы ли сообщение|
+|message_words| Слова сообщения |
+|command| Первое слово сообщения, используется для проверки по командам|
+|Стандартные параметры сообщения, по типу text, attachments и др.||
+
+**Важное примечание: параметр message.text редактируется ботом (в случае работы через пуш группы, payload и.т.д). Если вы хотите работать с "сырым" текстом, получите его через message.object**
+# А как обработать приглашения/исключения в беседе и прочее?
+Для киков/приглашений/входов по ссылке есть готовые обработчики.
+```python
+@app.kick_handler()
+def kick_handle(message):
+  app.reply(message, f'id {message.action["member_id"]} был исключен/вышел из беседы.')
+
+@app.invite_handler()
+def invite_handle(message):
+  app.reply(message, f'id {message.action["member_id"]} присоединился к беседе.')
+```
+Для прочих action-событий (https://vk.com/dev/objects/message) используйте app.action_handler(*тип события*)
+```python
+@app.action_handler('chat_title_update')
+def chat_name_handle(message):
+  app.reply(message, 'Название беседы изменено!')
+```
+# Как можно ответить на событие?
+- Самостоятельно отправить сообщение через API или метод send_message
+```python
+@app.message_handler()
+def test(message):
+  app.send_message(peer_id=message.peer_id, text='Test')
+```
+- Воспользоваться методом app.reply
+**Примечание: бот может самостоятельно разбить текст на куски в случае с этим методом и методом выше**
+```python
+@app.message_handler(commands=['among'])
+def test2(message):
+  app.reply(message, 'us')
+```
+**app.reply обязательно требует параметр message и текст для отправки. Остальное можно отправить через kwargs, сообщения без текста лучше отправлять через другие методы.**
+- Для callback-сообщений есть варианты, описанные в API - snackbar, открытие ссылки, открытие приложения, редактирование сообщения
+```python
+app.show_snackbar(message, 'Это снэкбар')
+app.open_link(message, 'https://vk.com/durov')
+app.open_app(message, app_id=0, app_hash='', owner_id=1)
+app.edit_message(message, 'Я отредачил сообщение!')
+```
+# А как загружать файлы?
+Пока реализована только загрузка фото при помощи методов upload_photos и upload_photo
+Функция upload_photo возвращает готовый код вложения, upload_photos массив кодов.
+## Параметры функции upload_photo
+|Параметр|Описание|
+|--------:|:-----|
