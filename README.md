@@ -3,10 +3,6 @@
 # Что требуется из библиотек для работы?
 - Requests
 - Cherrypy (для callback-сервера)
-> Также можете воспользоваться командой
-```
-pip/pip3 install -r requirements.txt
-```
 # Начало работы
 > Если вам проще изучить код, то можете изучить скрипт example.py
 - Инициализация Longpoll/Callback клиента
@@ -14,26 +10,26 @@ pip/pip3 install -r requirements.txt
 from client import Longpoll, Callback
 
 app = Longpoll(
-  access_token='YOUR_TOKEN', # токен группы
-  # также есть прочие параметры, о них речь ниже
+	access_token='YOUR_TOKEN', # токен группы
+	# также есть прочие параметры, о них речь ниже
 )
 
 callback_app = Callback(
-  access_token='YOUR_TOKEN', # токен
-  confirmation='CONFIRM_CODE', # ключ подтверждения
-  secret='SECRET_KEY' # секретный ключ
+	access_token='YOUR_TOKEN', # токен
+	confirmation='CONFIRM_CODE', # ключ подтверждения
+	secret='SECRET_KEY' # секретный ключ
 )
 
 # запуск Longpoll'а
 app.poll(
-  multithreading=True # настройка многопоточности
-  threads_amount=5 # кол-во потоков
+	multithreading=True # настройка многопоточности
+	threads_amount=5 # кол-во потоков
 )
 
 # запуск callback'а, если вы запускаете напрямую
 callback_app.launch_server(
-  ip='127.0.0.1',
-  port=80
+	ip='127.0.0.1',
+	port=80
 )
 # получение сервера, если вы хотите запустить сервер иначе (например через UWSGI)
 callback_server = callback_app.get_sever()
@@ -66,7 +62,7 @@ print(api.groups.getById(group_id=1))
 ```
 - Обращаться к переменной клиента api
 ```python
-print(app.api.users.get(vk_ids=[1])[0])
+print(app.api.users.get(user_ids=[1])[0])
 ```
 # Как обработать соообщение?
 > Обработка сообщения по регулярному выражению/командам
@@ -77,14 +73,14 @@ from client import Longpoll
 app = Longpoll(...)
 
 # обработка по команде
-app.message_handler(commands=['hello'])
+@app.message_handler(commands=['hello'])
 def command_handle(message):
-  app.reply(message, 'Hi!') # функция ответа на сообщение
+	app.reply(message, 'Hi!') # функция ответа на сообщение
 
 # обработка по регулярному выражению
-app.message_handler(regex=[r'^regex ([0-9]{1,}) (.{1,})
+@app.message_handler(regex=r'^regex ([0-9]{1,}) (.{1,})')
 def regex_handle(message, matches):
-  app.reply(message, 'Сработало регулярное выражение')
+	app.reply(message, 'Сработало регулярное выражение')
 ```
 > Важное примечание: регулярные выражения по дефолту регистронезависимы, а при ненахождении нужной команды применяется поиск по совпадениям при помощи формулы расстояния Дамерау-Левенштейна. "Угадывание" команды помогает в случае опечаток, но может и навредить. Полностью отключить его можно параметром predict_commands
 > Важное примечание 2: если срабатывает один из обработчиков, другие обработчики не оповещаются. Об обработке всех сообщений речь пойдет далее.
@@ -104,20 +100,20 @@ def regex_handle(message, matches):
 # Как обрабатывать событие?
 Для обработки события используйте декоратор **app.custom_handler**. Имеет единственный параметр - тип события с https://vk.com/dev/groups_events
 ```python
-app.custom_handler('message_deny')
+@app.custom_handler('message_deny')
 def message_deny_handler(event):
-  print(event.user_id) # выводит айди пользователя, запретившего написание сообщений в ЛС
+	print(event.user_id) # выводит айди пользователя, запретившего написание сообщений в ЛС
 ```
 # Структура событий и сообщений
 Различные обработчики передают функции либо объект события, либо объект сообщения. Помимо общих параметров, вы можете напрямую обращаться к аттрибутам событий.
 ```python
-app.message_handler()
+@app.message_handler()
 def print_from_id(message):
-  print(message.from_id)
+	print(message.from_id)
 
-app.custom_handler('like_add')
+@app.custom_handler('like_add')
 def print_liker_id(event):
-  print(event.liker_id)
+	print(event.liker_id)
 ```
 ## Общие параметры объекта события
 |Параметр| Описание|
@@ -144,31 +140,31 @@ def print_liker_id(event):
 ```python
 @app.kick_handler()
 def kick_handle(message):
-  app.reply(message, f'id {message.action["member_id"]} был исключен/вышел из беседы.')
+	app.reply(message, f'id {message.action["member_id"]} был исключен/вышел из беседы.')
 
 @app.invite_handler()
 def invite_handle(message):
-  app.reply(message, f'id {message.action["member_id"]} присоединился к беседе.')
+	app.reply(message, f'id {message.action["member_id"]} присоединился к беседе.')
 ```
 Для прочих action-событий (https://vk.com/dev/objects/message) используйте app.action_handler(*тип события*)
 ```python
 @app.action_handler('chat_title_update')
 def chat_name_handle(message):
-  app.reply(message, 'Название беседы изменено!')
+	app.reply(message, 'Название беседы изменено!')
 ```
 # Как можно ответить на событие?
 - Самостоятельно отправить сообщение через API или метод send_message
 ```python
 @app.message_handler()
 def test(message):
-  app.send_message(peer_id=message.peer_id, text='Test')
+	app.send_message(peer_id=message.peer_id, text='Test')
 ```
 - Воспользоваться методом app.reply
 **Примечание: бот может самостоятельно разбить текст на куски в случае с этим методом и методом выше**
 ```python
 @app.message_handler(commands=['among'])
 def test2(message):
-  app.reply(message, 'us')
+	app.reply(message, 'us')
 ```
 **app.reply обязательно требует параметр message и текст для отправки. Остальное можно отправить через kwargs, сообщения без текста лучше отправлять через другие методы.**
 - Для callback-сообщений есть варианты, описанные в API - snackbar, открытие ссылки, открытие приложения, редактирование сообщения
@@ -184,3 +180,49 @@ app.edit_message(message, 'Я отредачил сообщение!')
 ## Параметры функции upload_photo
 |Параметр|Описание|
 |--------:|:-----|
+|path|Путь к фото (относительный). Пример: '1.jpg' (файл должен быть в одной папке с файлом бота)|
+|abspath| Путь к фото (абсолютный)|
+|delete_after| Удалить ли фото после загрузки в ВК.|
+## Параметры функции upload_photos
+|Параметр|Описание|
+|-------:|:-------|
+|path_list| Список **относительных путей** к фото.|
+|delete_after| Удалить ли фото после загрузки в ВК.|
+# Генерация клавиатуры
+Для генерации клавиатуры из файла keyboard импортируйте класс Keyboard.
+```python
+from keyboard import Keyboard
+
+@app.message_handler(commands=['ktest'])
+def show_keyboard(message):
+	keyboard = Keyboard(inline=True)
+	keyboard.add_text_button(label='Нажми на меня!')
+	app.reply(message, 'Вот ваша клавиатура!', keyboard=keyboard())
+
+```
+## Параметры создания клавиатуры
+|Параметр|Описание|
+|-------:|:-------|
+|one_time|Уничтожится ли клавиатура после нажатия, boolean|
+|inline|Инлайн-клавиатура или обычная, boolean|
+|row_length_limit|Собственный ограничитель количества кнопок в ряду. Необязателен|
+## Методы клавиатуры
+|Метод|Параметры|Описание|
+|-----:|:---:|:------|
+|add_line| - | Добавить новый ряд кнопок (пустой)|
+|add_text_button| label - текст на кнопке (строка), color - цвет кнопки (строка, по документации ВК), payload - полезная нагрузка (строка, необязателен), callback - callback-кнопка или нет (boolean), clear_payload - полезная нагрузка собственной структуры (словарь)| Создает обычную кнопку или callback-кнопку. |
+|add_link_button| label - текст на кнопке (строка), url - ссылка (строка) | Создает перенаправляющую кнопку |
+|get_keyboard| - | Позволяет получить саму клавиатуру для отправки ВК. Можно также просто вызвать класс. |
+# А можно ли как-то обработать ошибки?
+Прикиньте - да. При инициализации клиента вы можете передать параметры message_error_handler, other_error_handler. Обычно это функции, которым будут переданы параметры сообщения/события и само исключение. Если обработчики не указаны, то исключение будет просто вызвано через raise
+```python
+from client import Longpoll
+
+def error_handler(message, exception):
+	print(f'Ой ошибка: {exception}')
+ 
+app = Longpoll(
+	access_token='TOKEN',
+	message_error_handler=error_handler
+)
+```
