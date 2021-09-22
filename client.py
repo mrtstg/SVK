@@ -249,7 +249,7 @@ class KickHandler(ActionHandler):
 
 class ClientBase:
     def __init__(self, access_token: str, api_timeout: int = 5, api_version: str = '5.131',
-                handle_callback = False, handle_payload = True, predict_commands = True,
+                handle_callback = False, handle_payload = True, predict_commands = True, handle_bots = False,
                 message_error_handler = None, other_error_handler = None):
         self._token = access_token
         self.api = api.ApiClient(access_token=access_token, timeout=api_timeout, version=api_version)
@@ -258,6 +258,7 @@ class ClientBase:
         self.any_message_handlers = []
         self.handlers = []
         self.predict_commands = predict_commands
+        self.handle_bots = handle_bots
         self.default_message_type = ['text']
         if handle_callback:
             self.default_message_type.append('callback')
@@ -357,6 +358,10 @@ class ClientBase:
     
     # TODO: придумать лучше костыль для обработчика всех сообщений
     def _notify_message_handlers(self, message):
+        # TODO: было бы неплохо и этот костыль убрать
+        if message.from_id < 0 and not self.handle_bots:
+            return
+
         for handler in self.any_message_handlers:
             if handler.check_filters(message):
                 handler(message)
@@ -497,7 +502,7 @@ class LongpollThread(threading.Thread):
 
 class Longpoll(ClientBase):
     def __init__(self, access_token: str, wait: int = 25, api_timeout: int = 5, api_version: str = '5.131',
-                handle_callback = False, handle_payload = True, predict_commands = True,
+                handle_callback = False, handle_payload = True, predict_commands = True, handle_bots = False,
                 message_error_handler = None, other_error_handler = None):
         super().__init__(
             access_token=access_token,
@@ -506,6 +511,7 @@ class Longpoll(ClientBase):
             handle_callback=handle_callback,
             handle_payload=handle_payload,
             predict_commands=predict_commands,
+            handle_bots=handle_bots,
             message_error_handler=message_error_handler,
             other_error_handler=other_error_handler
         )
@@ -640,7 +646,7 @@ class CallbackServer:
 class Callback(ClientBase):
     def __init__(self, access_token: str, secret: str = '', confirmation: str = '', api_timeout: int = 5,
                 api_version: str = "5.131", handle_callback = False, handle_payload = True, predict_commands = True,
-                message_error_handler = None, other_error_handler = None):
+                handle_bots = False, message_error_handler = None, other_error_handler = None):
         super().__init__(
             access_token=access_token,
             api_timeout=api_timeout,
@@ -648,6 +654,7 @@ class Callback(ClientBase):
             handle_callback=handle_callback,
             handle_payload=handle_payload,
             predict_commands=predict_commands,
+            handle_bots=handle_bots,
             message_error_handler=message_error_handler,
             other_error_handler=other_error_handler
         )

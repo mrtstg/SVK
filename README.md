@@ -43,6 +43,7 @@ callback_server = callback_app.get_sever()
 |handle_callback| Обрабатывать по дефолту сообщения типа message_event (из callback-кнопок), boolean |
 |handle_payload| Обрабатывать по дефолту команды из payload'а (обычные кнопки, н-р), boolean |
 |predict_commands| "Угадывать" ли команды, об этом пойдет речь дальше, boolean |
+|handle_bots| Обрабатывать ли сообщения ботов (групп), boolean |
 |message_error_handler | Функция или callable объект, которй будет вызван при получении ошибки во время обработки сообщения (*далее об этом есть раздел*) |
 |other_error_handler | Фунция или callable объект, который будет вызван при получении ошибки во время обработки события (*далее об этом тоже есть раздел*) |
 ## Параметры только Longpoll клиента
