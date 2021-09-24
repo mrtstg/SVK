@@ -1,4 +1,7 @@
-import api
+try:
+    import api
+except ImportError:
+    import svk.api as api
 import requests
 import random
 import json
