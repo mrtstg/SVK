@@ -392,6 +392,21 @@ class ClientBase:
             **kwargs
         )
     
+    def is_bot_admin(self, peer_id):
+        return self.is_chat_admin(-self.group_id, peer_id, False)
+    
+    def is_chat_admin(self, user_id, peer_id, raise_error = True):
+        try:
+            return user_id in [
+                user['member_id'] for user in list(
+                    filter(lambda x: 'is_admin' in x, self.api.messages.getConversationMembers(peer_id=peer_id)['items'])
+                )
+            ]
+        except Exception as e:
+            if '[917]' in str(e) and not raise_error:
+                return False
+            raise Exception(e)
+    
     def split_string_by_length(self, string, length=4096):
         return [string[i: i + length] for i in range(0, len(string), length)]
     
