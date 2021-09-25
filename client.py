@@ -105,7 +105,7 @@ class Message(Event):
             self.text = group_push_match[0]
         self.from_id = self.message['from_id']
         self.peer_id = self.message['peer_id']
-        self.chat_id = max(0, self.peer_id - 2e9)
+        self.chat_id = int(max(0, self.peer_id - 2e9))
         self.from_chat = self.chat_id > 0
 
         self.message_words = self.text.split(' ')
