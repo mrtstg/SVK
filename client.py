@@ -12,6 +12,9 @@ import time
 from queue import Queue
 import cherrypy
 
+# TODO: придумать куда засунуть это все
+message_types_list = ['text', 'callback', 'payload']
+
 def reboot(f):
 
     def _reboot(*args, **kwargs):
@@ -285,6 +288,14 @@ class ClientBase:
                         message_type = None, _filter = None):
         if message_type is None:
             message_type = self.default_message_type
+        
+        for m_type in message_type:
+            if m_type not in message_types_list:
+                raise Exception(
+                    'Incorrect message type value: {}. Available options: {}'.format(
+                        m_type, ", ".join(message_types_list)
+                    )
+                )
 
         def _message_handler(f):
             handler = MessageHandler(
