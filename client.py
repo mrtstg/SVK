@@ -14,6 +14,24 @@ import cherrypy
 
 # TODO: придумать куда засунуть это все
 message_types_list = ['text', 'callback', 'payload']
+content_types_list = [
+    'reply_message',
+    'fwd_messages',
+    'geo'
+]
+# ? специальный список для типов вложений, просто так для кода удобнее
+attachment_types_list = [
+    'photo',
+    'video',
+    'audio',
+    'doc',
+    'link',
+    'market',
+    'market_album',
+    'wall',
+    'wall_reply',
+    'sticker'
+]
 
 def reboot(f):
 
@@ -146,13 +164,14 @@ class Handler:
 
 class MessageHandler(Handler):
     def __init__(self, function, commands, regex, prefix, predict, _filter, 
-                message_type, error_handler = None):
+                message_type, content_type, error_handler = None):
         super().__init__(
             function=function,
             event_type='message_new',
             error_handler=error_handler
         )
         self.message_type = message_type
+        self.content_type = content_type
         self.prefix = prefix
         self.predict = predict
         self.commands = list(map(lambda x: self.prefix + x, commands if isinstance(commands, list) else [commands]))
@@ -170,24 +189,49 @@ class MessageHandler(Handler):
                 raise Exception(e)
             else:
                 self.error_handler(message, e)
-
-    def check_filters(self, message):
-        if self.filter is not None:
-            if not self.filter(message):
-                return False
-        
-        if self.regex is None and not self.commands:
-            return True
-        
+    
+    def check_message_type(self, message):
         if message.from_payload and 'payload' not in self.message_type:
             return False
-        
+
         if message.callback and 'callback' not in self.message_type:
             return False
-        
+
         if not message.from_payload and not message.callback and 'text' not in self.message_type:
             return False
         
+        return True
+    
+    def check_content_type(self, message):
+        attachment_types = [i['type'] for i in message.attachments]
+        for a_type in attachment_types_list:
+            if a_type in self.content_type and a_type not in attachment_types:
+                return False
+
+        if 'geo' in self.content_type and 'geo' not in message.message:
+            return False
+
+        if 'reply_message' in self.content_type and 'reply_message' not in message.message:
+            return False
+
+        if 'fwd_messages' in self.content_type and not message.fwd_messages:
+            return False
+        
+        return True
+
+    def check_filters(self, message):
+        if self.filter is not None and not self.filter(message):
+            return False
+        
+        if not self.check_message_type(message):
+            return False
+        
+        if not self.check_content_type(message):
+            return False
+
+        if self.regex is None and not self.commands:
+            return True
+
         if self.commands:
             if message.command in self.commands:
                 return True
@@ -197,9 +241,8 @@ class MessageHandler(Handler):
                     and message.command.find(self.prefix) == 0
                     for command_variant in self.commands
                 )
-        else:
-            if re.findall(self.regex, message.text, flags=re.IGNORECASE):
-                return True
+        elif re.findall(self.regex, message.text, flags=re.IGNORECASE):
+            return True
 
         return False
 
@@ -285,7 +328,10 @@ class ClientBase:
             return Event(event_info)
     
     def message_handler(self, regex = None, commands = [], prefix = '', predict = True, 
-                        message_type = None, _filter = None):
+                        message_type = None, content_type = None, _filter = None):
+        if content_type is None:
+            content_type = []
+
         if message_type is None:
             message_type = self.default_message_type
         
@@ -294,6 +340,14 @@ class ClientBase:
                 raise Exception(
                     'Incorrect message type value: {}. Available options: {}'.format(
                         m_type, ", ".join(message_types_list)
+                    )
+                )
+        
+        for c_type in content_type:
+            if c_type not in content_types_list + attachment_types_list:
+                raise Exception(
+                    'Incorrect content type value: {}. Available options: {}'.format(
+                        c_type, ", ".join(content_types_list + attachment_types_list)
                     )
                 )
 
@@ -306,6 +360,7 @@ class ClientBase:
                     predict=predict and self.predict_commands,
                     _filter=_filter,
                     error_handler=self.message_error_handler,
+                    content_type=content_type,
                     message_type=message_type
                 )
             if regex is None and not commands:
