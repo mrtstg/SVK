@@ -4,7 +4,6 @@
 - Requests
 - Cherrypy (для callback-сервера)
 # Начало работы
-> Если вам проще изучить код, то можете изучить скрипт example.py
 - Инициализация Longpoll/Callback клиента
 ```python
 from client import Longpoll, Callback
