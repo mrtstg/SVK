@@ -164,7 +164,7 @@ class Handler:
 
 class MessageHandler(Handler):
     def __init__(self, function, commands, regex, prefix, predict, _filter, 
-                message_type, content_type, error_handler = None):
+                message_type, content_type = [], error_handler = None):
         super().__init__(
             function=function,
             event_type='message_new',
