@@ -299,7 +299,7 @@ class KickHandler(ActionHandler):
 class ClientBase:
     def __init__(self, access_token: str, api_timeout: int = 5, api_version: str = '5.131',
                 handle_callback = False, handle_payload = True, predict_commands = True, handle_bots = False,
-                message_error_handler = None, other_error_handler = None):
+                message_error_handler = None, other_error_handler = None, message_preprocessor=None):
         self._token = access_token
         self.api = api.ApiClient(access_token=access_token, timeout=api_timeout, version=api_version)
         self.group_id = self.api.groups.getById()[0]['id']
@@ -313,6 +313,7 @@ class ClientBase:
             self.default_message_type.append('callback')
         if handle_payload:
             self.default_message_type.append('payload')
+        self.message_preprocessor = None
         self.message_error_handler = message_error_handler
         self.other_error_handler = other_error_handler
     
@@ -326,6 +327,9 @@ class ClientBase:
             return CallbackMessage(event_info)
         else:
             return Event(event_info)
+    
+    def set_message_preprocessor(self, f):
+        self.message_preprocessor = f
     
     def message_handler(self, regex = None, commands = [], prefix = '', predict = True, 
                         message_type = None, content_type = None, _filter = None):
@@ -427,6 +431,8 @@ class ClientBase:
     
     # TODO: придумать лучше костыль для обработчика всех сообщений
     def _notify_message_handlers(self, message):
+        if self.message_preprocessor is not None:
+            message = self.message_preprocessor(message)
         # TODO: было бы неплохо и этот костыль убрать
         if message.from_id < 0 and not self.handle_bots:
             return
@@ -439,7 +445,7 @@ class ClientBase:
             if handler.check_filters(message):
                 handler(message)
                 break
-    
+
     def _notify_event_handlers(self, event):
         for handler in self.handlers:
             if handler.event_type == event.type:
@@ -587,7 +593,7 @@ class LongpollThread(threading.Thread):
 class Longpoll(ClientBase):
     def __init__(self, access_token: str, wait: int = 25, api_timeout: int = 5, api_version: str = '5.131',
                 handle_callback = False, handle_payload = True, predict_commands = True, handle_bots = False,
-                message_error_handler = None, other_error_handler = None):
+                message_error_handler = None, other_error_handler = None, message_preprocessor=None):
         super().__init__(
             access_token=access_token,
             api_timeout=api_timeout,
@@ -597,7 +603,8 @@ class Longpoll(ClientBase):
             predict_commands=predict_commands,
             handle_bots=handle_bots,
             message_error_handler=message_error_handler,
-            other_error_handler=other_error_handler
+            other_error_handler=other_error_handler,
+            message_preprocessor=None
         )
         self.session = requests.Session()
         self.wait = wait
@@ -730,7 +737,7 @@ class CallbackServer:
 class Callback(ClientBase):
     def __init__(self, access_token: str, secret: str = '', confirmation: str = '', api_timeout: int = 5,
                 api_version: str = "5.131", handle_callback = False, handle_payload = True, predict_commands = True,
-                handle_bots = False, message_error_handler = None, other_error_handler = None):
+                handle_bots = False, message_error_handler = None, other_error_handler = None, message_preprocessor=None):
         super().__init__(
             access_token=access_token,
             api_timeout=api_timeout,
@@ -740,7 +747,8 @@ class Callback(ClientBase):
             predict_commands=predict_commands,
             handle_bots=handle_bots,
             message_error_handler=message_error_handler,
-            other_error_handler=other_error_handler
+            other_error_handler=other_error_handler,
+            message_preprocessor=message_preprocessor
         )
         self.secret = secret
         self.confirmation = confirmation
