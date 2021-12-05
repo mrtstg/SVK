@@ -313,7 +313,7 @@ class ClientBase:
             self.default_message_type.append('callback')
         if handle_payload:
             self.default_message_type.append('payload')
-        self.message_preprocessor = None
+        self.message_preprocessor = message_preprocessor
         self.message_error_handler = message_error_handler
         self.other_error_handler = other_error_handler
     
