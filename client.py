@@ -604,7 +604,7 @@ class Longpoll(ClientBase):
             handle_bots=handle_bots,
             message_error_handler=message_error_handler,
             other_error_handler=other_error_handler,
-            message_preprocessor=None
+            message_preprocessor=message_preprocessor
         )
         self.session = requests.Session()
         self.wait = wait
